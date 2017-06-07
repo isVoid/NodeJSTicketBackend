@@ -1,132 +1,70 @@
-var mongoose = require('mongoose');
-var Schema = mongoose.Schema;
-mongoose.connect('mongodb://localhost/ticketSystem')
-var autoinc = require('mongoose-id-autoinc');
-var express = require('express');	//Node.js Web Services
+var express = require('express');
+var path = require('path');
+var favicon = require('serve-favicon');
+var logger = require('morgan');
+var cookieParser = require('cookie-parser');
 var bodyParser = require('body-parser');
 var session = require('express-session');	//Express() session control
+
 var app = express();
+
+//Model
+const model = require('./routes/model.js');
+//Services
+const login = require('./routes/loginService.js');
+const movieTicket = require('./routes/movieTicketService.js');
+const movie = require('./routes/movieService.js');
+const cinema = require('./routes/cinemaService.js');
+
+// uncomment after placing your favicon in /public
+//app.use(favicon(path.join(__dirname, 'public', 'favicon.ico')));
+app.use(logger('dev'));
 app.use(bodyParser.json());
-app.use(session({secret: 'nottelling'}))
+app.use(bodyParser.urlencoded({ extended: true }));
+app.use(cookieParser());
+app.use(express.static(path.join(__dirname, 'public')));
+app.use(bodyParser.json());
+app.use(session({secret: 'nottelling'}));
 
-var db = mongoose.connection;
-db.on('error', console.error.bind(console, 'connection error:'));
-db.once('open', function() {
-	console.log("Mongoose:: MongoDB connected!");
+//Service Routers
+app.use('/login', login);
+app.use('/myTickets', movieTicket);
+app.use('/movie', movie);
+app.use('/cinema', cinema);
+
+// catch 404 and forward to error handler
+app.use(function(req, res, next) {
+  var err = new Error('Not Found');
+  err.status = 404;
+  next(err);
 });
 
-//Setting up database schema.
+// error handlers
 
-autoinc.init(db);	//Plugin for ID auto increment.
+// development error handler
+// will print stacktrace
+if (app.get('env') === 'development') {
+  app.use(function(err, req, res, next) {
+    res.status(err.status || 500);
+    res.json({
+      message: err.message,
+      error: err
+    });
+  });
+}
 
-/*
-*	Entity: User
-#	String: Email
-#	Number: password
-#	Number: Phone
-*/
-var UserSchema = mongoose.Schema({
-	email : String,
-	password : Number,
-	phone : Number,
-	myTickets : [{ type: Schema.Types.ObjectId, ref:'MovieTicket' }]	//One to Many
-});
-UserSchema.plugin(autoinc.plugin, {  model : 'User' }); //Auto Increment ID
-var User = db.model('User', UserSchema); //Compile Schema
-
-/*
-*	Entity: Movie Ticket
-*	Number: Price
-*/
-var MovieTicketSchema = mongoose.Schema({
-	price : Number,
-	myUser : [{ type: Schema.Types.ObjectId, ref:'User' }]
-});
-MovieTicketSchema.plugin(autoinc.plugin, {  model : 'MovieTicket' });
-var MovieTicket = db.model('MovieTicket', MovieTicketSchema);
-
-
-//Setting up REST services
-var sess;	//A global session object
-app.post('/login', function (req, res)  {
-
-	sess = req.session;
-	if (sess.email) {
-		//User has logged in
-		res.status(200);
-		var alreadyLoggedIn = 'You have already logged in';
-		console.log(alreadyLoggedIn);
-		res.send(alreadyLoggedIn);
-		return;
-	}
-	else {
-		var e = req.body.email;
-		console.log(e);
-		User.findOne({ email : e }, function (err, currentUser) {
-			console.log(currentUser);
-			if (currentUser) {
-				//User exists and password correct
-				if (currentUser.password == req.body.password) {
-					sess.email = currentUser.email;
-					res.status(200);
-					var success = 'You have logged in!';
-					console.log(success);
-					res.send(success);
-					return;
-				}
-				//User exists, password incorrect.
-				else {
-					res.status(400);
-					res.send('Wrong Password!');
-					return;
-				}
-			}
-		});
-		
-	}
-
-	//User not found, create it.
-	var newUser = new User({
-		'email' : req.body.email,
-		'password' : req.body.password,
-		'phone' : req.body.phone
-	});
-	newUser.save();
-	sess.email = newUser.email;
-	res.status(201);
-	res.send('User not exist, auto created. Welcome ' + newUser.email + '!');
-
+// production error handler
+// no stacktraces leaked to user
+app.use(function(err, req, res, next) {
+  res.status(err.status || 500);
+  res.json({
+    message: err.message,
+    error: {}
+  });
 });
 
-app.get('/myTickets', function (req, res) {
-
-	sess = req.session;
-
-	if (sess.email) {
-
-		User
-			.find({})
-			.populate('myTickets')
-			.exec(function (err, tickets) {
-				console.log(tickets);
-				res.status(200);
-				res.send(JSON.stringify(tickets["myTickets"]));
-				return;
-			});
-
-	}
-	else {
-		console.log('Invalid session!');
-		res.status(400);
-		res.send('Invalid Session. Please retry login.');
-	}
-
+app.listen(8081, function () {
+	console.log("Server is running at :::8081")
 });
 
-var server = app.listen(8081, function() {
-	var host = server.address().address
-	var port = server.address().port
-
-	console.log("Listening:: http://%s:%s", host, port);
-
-});
+module.exports = app;
