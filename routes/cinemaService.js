@@ -58,14 +58,8 @@ for (var c in raw_cinema.list) {
 	
 }
 
-// var result = $.grep(_cinemas, e => {return e.cid == 8841})
-var result = _cinemas.find(c => c.id === 8841).showtimepage
-console.log(result);
-
 router.get('/', (req, res, next) => {
-
 	res.json({state: 'success', cinemas: _cinemas})
-
 });
 
 router.get('/show/:id', (req, res, next) => {
