@@ -27,43 +27,69 @@ function reqMovieBy(id) {
   }
 }
 
+const hotMovies = [];
+var finishFetchingMovies;
+rp(reqHotMovies)
+		.then(body => {
+			//List to return
+			const airingMoviesID = []
+			body.subjects.forEach(element => {
+				var hotObject = {
+					mid : element.id,
+					smallImageURI : element.images.small,
+					mediumImageURI : element.images.medium,
+					largeImageURI : element.images.large
+				}
+				airingMoviesID.push(hotObject);
+			}, this);
+
+			return airingMoviesID;
+		})
+		.catch(err => {
+			console.log("Error fetch id: " + err);
+		})
+		.then( airingMoviesID => {
+			
+			airingMoviesID.forEach(hotObject => {
+
+				console.log(hotObject.mid);
+				rp(reqMovieBy(hotObject.mid))
+					.then(body => {
+						console.log(body);
+						var m = {
+							mid : hotMovies.length + 1,
+							douid : body.id,
+							name : body.title,
+							nameEng : body.original_title,
+							audience_rating : body.rating.average,
+							audience_num : body.ratings_count,
+							movieType : body.genres.join(','),
+							movieSourceDest : body.countries.join(','),
+							movieLength : body.durations,
+							nWantSee : body.wish_count,
+							oneSentence : "一句话描述，豆瓣死不给",
+							movieIntro : body.summary,
+							smallImageURI : hotObject.smallImageURI.replace(/douban.com/, "doubanio.com"),
+							mediumImageURI : hotObject.mediumImageURI.replace(/douban.com/, "doubanio.com"),
+							largeImageURI : hotObject.largeImageURI.replace(/douban.com/, "doubanio.com"),
+							// staffList : body.casts,
+							premiereDate : '2017-09-09',	//No data
+							onair : true
+
+						}
+						hotMovies.push(m);
+					})
+			})	
+		})
+		.catch(err => {
+			console.log("Error fetch movie: " + err);
+		})
+
 router.get('/air', (req, res, next) => {
 
 	console.log('Requesting for on air movies.');
-	//Create Http Request
 
-	rp(reqHotMovies)
-		.then(body => {
-			//List to return
-			const hotMovies = [];
-
-			body.subjects.forEach(element => {
-				//console.log(element);
-				//First check if the movie exists in our cache
-				M.Movie.findOne({_id : element.id})
-					.then (
-						function (movie) {
-							//console.log(movie);
-							var movie = new M.Movie({
-								_id : element.id
-							});
-							movie.save();
-							}
-						,
-						function (err) {
-							res.json({state: 'failed', err:error});
-							conosle.log(err);
-						});
-
-				hotMovies.push(element);
-				//console.log(2);
-			}, this);
-			//console.log(3);
-			res.json({state: 'success', air: hotMovies});
-		})
-		.catch( error => {
-		res.json({state: 'failed', err: error});
-		} )
+	res.json(hotMovies);
 
 });
 
@@ -82,7 +108,6 @@ router.get('/new', (req, res, next) => {
 				M.Movie.findOne({_id : element.id})
 					.then (
 						function (movie) {
-							//console.log(movie);
 							var movie = new M.Movie({
 								_id : element.id
 							});
@@ -95,9 +120,7 @@ router.get('/new', (req, res, next) => {
 						});
 
 				newMovies.push(element);
-				//console.log(2);
 			}, this);
-			//console.log(3);
 			res.json({state: 'success', air: newMovies});
 		})
 		.catch( error => {
@@ -112,8 +135,24 @@ router.get('/id/:id', (req, res, next) => {
 
 	rp(reqMovieBy(req.params.id))
 		.then(body => {
-				console.log(body);
-				res.json({state: 'success', movie:body});
+				// console.log(body);
+				var m = {
+					mid : body.id,
+					name : body.title,
+					nameEng : body.original_title,
+					audience_rating : body.rating.average,
+					audience_num : body.ratings_count,
+					movieType : body.genres.join(','),
+					movieSourceDest : body.countries.join(','),
+					movieLength : body.durations,
+					nWantSee : body.wish_count,
+					movieIntro : body.summary,
+					// staffList : body.casts,
+					premiereDate : '2017-09-09'	//No data
+				}
+				
+				res.json(m);
+				//res.json({state: 'success', movie:body});
 			})
 });
 

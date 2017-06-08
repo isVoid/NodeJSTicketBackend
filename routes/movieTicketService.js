@@ -6,7 +6,7 @@ var router = express.Router();
 
 var M = require('./model.js');
 
-//Ticket Services
+//Get All user tickets, when user session is available
 router.get('/', function (req, res) {
 
 	var sess = req.session;
@@ -32,6 +32,7 @@ router.get('/', function (req, res) {
 
 });
 
+//Add new tickets, proceed when user place the order
 router.post('/', function (req, res) {
 
 	var sess = req.session;

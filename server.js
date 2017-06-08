@@ -24,7 +24,10 @@ app.use(bodyParser.urlencoded({ extended: true }));
 app.use(cookieParser());
 app.use(express.static(path.join(__dirname, 'public')));
 app.use(bodyParser.json());
-app.use(session({secret: 'nottelling'}));
+app.use(session({
+  secret: 'nottelling'
+}));
+
 
 //Service Routers
 app.use('/login', login);
